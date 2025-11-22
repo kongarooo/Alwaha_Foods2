@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="description" content="متجر الواحة فود - أفضل المنتجات الغذائية">
+  <title>ALWAHA STORE — النسخة الذهبية V3</title>
+  <link rel="icon" href="https://i.postimg.cc/bwGLgnwv/1743204323947.jpg">
+  
+  <!-- إضافة Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+  <!-- ربط CSS -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- إضافة تحسينات SEO -->
+  <meta property="og:title" content="الواحة فود - أفضل المنتجات الغذائية">
+  <meta property="og:description" content="متجر الواحة فود يقدم أفضل المنتجات الغذائية بأعلى جودة وأسعار منافسة">
+  <meta property="og:image" content="https://i.postimg.cc/bwGLgnwv/1743204323947.jpg">
+  <meta name="theme-color" content="#ffb300">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header" role="banner">
+    <div class="header-right">
+      <img id="siteLogo" src="https://i.postimg.cc/bwGLgnwv/1743204323947.jpg" class="logo" alt="شعار متجر الواحة فود" width="45" height="45">
+      <div class="brand-name">الواحة فود</div>
+    </div>
+
+    <div class="search-container">
+      <div class="search-inline">
+        <input id="searchInput" type="text" placeholder="ابحث عن منتج..." aria-label="بحث عن المنتجات">
+      </div>
+    </div>
+
+    <div class="header-left">
+      <button id="themeToggle" class="icon" title="الوضع الليلي" aria-label="تبديل الوضع الليلي">🌙</button>
+      <button id="settingsBtn" class="icon" title="الإعدادات" aria-label="فتح الإعدادات">⚙️</button>
+      <button id="cartBtn" class="icon" title="السلة" aria-label="فتح سلة المشتريات">🛒 <span id="cartCount" class="badge">0</span></button>
+      <div class="zoom-controls">
+        <button id="zoomOut" class="icon" aria-label="تصغير">−</button>
+        <span id="zoomLevel">100%</span>
+        <button id="zoomIn" class="icon" aria-label="تكبير">+</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- عنصر التحكم بالإدارة -->
+  <div id="adminControls" class="admin-controls" style="display:none;">
+    <button id="toggleAdminView" class="btn primary">👁️ وضع المسؤول</button>
+  </div>
+
+  <!-- أزرار تحكم المسؤول -->
+  <div id="adminProductControls" class="admin-product-controls" style="display:none;">
+    <button id="addProductMain" class="btn primary">➕ إضافة منتج جديد</button>
+    <button id="deleteAllProductsMain" class="btn secondary">🗑️ مسح جميع المنتجات</button>
+  </div>
+
+  <!-- TOP SELLERS CAROUSEL -->
+  <section class="top-sellers" aria-labelledby="topSellersHeading">
+    <h2 id="topSellersHeading" class="visually-hidden">أفضل المنتجات المبيعة</h2>
+    <div id="metro" class="metro-track" role="region" aria-live="polite"></div>
+  </section>
+
+  <!-- SECTIONS -->
+  <nav id="sectionList" class="section-list" aria-label="أقسام المتجر"></nav>
+
+  <!-- PRODUCTS GRID -->
+  <main id="productGrid" class="product-grid" role="main"></main>
+
+  <!-- CART SIDEBAR -->
+  <aside id="cartSidebar" class="cart-sidebar" aria-hidden="true">
+    <div class="cart-header">
+      <h3>🛒 سلة المشتريات</h3>
+      <div class="cart-controls">
+        <button id="clearCartBtn" class="small" type="button">🗑️ مسح السلة</button>
+        <button id="closeCart" class="small" type="button">✖</button>
+      </div>
+    </div>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="cart-footer">
+      <div>الإجمالي: <strong id="cartTotal">0.00</strong> ج.م</div>
+      <div class="cart-actions">
+        <button id="checkoutBtn" class="btn primary" type="button">إتمام الطلب</button>
+        <button id="cartWhatsappBtn" class="btn whatsapp" type="button">واتساب</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast" aria-hidden="true" role="alert"></div>
+
+  <!-- MODALS -->
+  <div id="checkoutModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="checkoutTitle">
+    <div class="modal-body">
+      <h3 id="checkoutTitle">🧾 إتمام الطلب</h3>
+      <div id="checkoutSummary"></div>
+      <input id="checkoutName" type="text" placeholder="الاسم الكامل" required>
+      <input id="checkoutPhone" type="tel" placeholder="رقم الهاتف" required>
+      <div class="modal-actions">
+        <button id="confirmCheckout" class="btn primary" type="button">تأكيد الطلب</button>
+        <button id="cancelCheckout" class="btn secondary" type="button">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="passwordModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="passwordTitle">
+    <div class="modal-body small">
+      <h3 id="passwordTitle">🔐 دخول لوحة الإدارة</h3>
+      <input id="adminPassword" type="password" placeholder="أدخل كلمة المرور" required>
+      <div class="modal-actions">
+        <button id="passwordSubmit" class="btn primary" type="button">دخول</button>
+        <button id="passwordCancel" class="btn secondary" type="button">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="settingsTitle">
+    <div class="modal-body large settings-modal">
+      <div class="settings-header">
+        <h2 id="settingsTitle">⚙️ إعدادات المتجر <small>(كلمة السر: <strong>102030</strong>)</small></h2>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="products" role="tab" aria-selected="true">📦 المنتجات</button>
+        <button class="tab" data-tab="sections" role="tab" aria-selected="false">📂 الأقسام</button>
+        <button class="tab" data-tab="colors" role="tab" aria-selected="false">🎨 الألوان واللوجو</button>
+        <button class="tab" data-tab="store" role="tab" aria-selected="false">🏪 إعدادات المتجر</button>
+        <button class="tab" data-tab="database" role="tab" aria-selected="false">🗄️ قاعدة البيانات</button>
+        <button class="tab" data-tab="reports" role="tab" aria-selected="false">📈 التقارير</button>
+      </div>
+
+      <div class="tab-contents">
+        <!-- PRODUCTS TAB -->
+        <section id="tab-products" class="tab-content" role="tabpanel">
+          <div class="admin-actions-top">
+            <button id="addProductBtn" class="btn primary" type="button">➕ إضافة منتج</button>
+            <button id="deleteAllProducts" class="btn secondary" type="button">🗑️ مسح الكل</button>
+          </div>
+          <div id="adminProducts" class="admin-product-list"></div>
+        </section>
+
+        <!-- SECTIONS TAB -->
+        <section id="tab-sections" class="tab-content hidden" role="tabpanel">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:15px;">
+            <input id="newSectionName" type="text" placeholder="أدخل اسم القسم (مثال: الشيكولاتة)" style="flex:1;">
+            <div style="position:relative;">
+              <input id="newSectionIcon" type="text" placeholder="أيقونة" maxlength="2" 
+                     style="width:60px;text-align:center;" readonly>
+              <button id="openIconsModal" class="btn secondary" type="button" style="margin-right:5px;">📂</button>
+            </div>
+            <button id="addSectionBtn" class="btn primary" type="button">إضافة قسم</button>
+          </div>
+          <div id="adminSections" class="admin-section-list" style="margin-top:12px;"></div>
+        </section>
+
+        <!-- COLORS TAB -->
+        <section id="tab-colors" class="tab-content hidden" role="tabpanel">
+          <div style="margin-bottom: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🎨 تغيير الألوان</h4>
+            <div style="display: grid; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">اللون الرئيسي:</span>
+                <input id="mainColor" type="color" value="#ffb300" style="width: 60px; height: 40px;">
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">خلفية الصفحة:</span>
+                <input id="bgColor" type="color" value="#fafafa" style="width: 60px; height: 40px;">
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">لون النص:</span>
+                <input id="textColor" type="color" value="#222222" style="width: 60px; height: 40px;">
+              </label>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button id="applyTheme" class="btn primary" type="button" style="flex: 1;">تطبيق الألوان</button>
+              <button id="resetTheme" class="btn secondary" type="button" style="flex: 1;">استعادة الألوان</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🖼️ تغيير الشعار (اللوجو)</h4>
+            <div class="logo-preview-container">
+              <img id="logoPreview" src="https://i.postimg.cc/bwGLgnwv/1743204323947.jpg" 
+                   class="logo-preview" alt="معاينة الشعار">
+              <p style="margin: 10px 0 0; color: #666; font-size: 14px;">معاينة الشعار الحالي</p>
+            </div>
+            <div class="logo-upload-options">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="logoUpload" accept="image/*" style="flex: 1;">
+                <button id="uploadLogoBtn" class="btn primary" type="button">رفع صورة</button>
+              </div>
+              <div>
+                <input type="url" id="logoUrl" class="logo-url-input" 
+                       placeholder="أدخل رابط الصورة من الإنترنت" 
+                       pattern="https?://.+" title="أدخل رابط يبدأ بـ http أو https">
+                <button id="applyLogoUrl" class="btn secondary" type="button" style="width: 100%; margin-top: 8px;">تطبيق الرابط</button>
+              </div>
+            </div>
+            <div class="logo-actions">
+              <button id="resetLogo" class="btn secondary" type="button">استعادة الشعار الأصلي</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px; margin-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🖼️ رفع الأيقونات المخصصة</h4>
+            <div class="icon-upload-section">
+              <label style="display: block; margin-bottom: 10px; font-weight: bold;">رفع أيقونة جديدة:</label>
+              <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                <input type="file" id="iconUpload" accept="image/*" style="flex: 1;">
+                <button id="uploadIconBtn" class="btn primary" type="button">رفع الأيقونة</button>
+              </div>
+              <div class="custom-icons-grid">
+                <h5 style="margin-bottom: 10px;">الأيقونات المرفوعة:</h5>
+                <div id="customIconsGrid" class="icons-grid" style="max-height: 200px; overflow-y: auto;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px; margin-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🔐 تغيير كلمة المرور</h4>
+            <div style="display: grid; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">كلمة المرور الحالية:</span>
+                <input id="currentPassword" type="password" style="width: 150px;">
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">كلمة المرور الجديدة:</span>
+                <input id="newPassword" type="password" style="width: 150px;">
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">تأكيد كلمة المرور:</span>
+                <input id="confirmPassword" type="password" style="width: 150px;">
+              </label>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button id="changePasswordBtn" class="btn primary" type="button" style="flex: 1;">تغيير كلمة المرور</button>
+            </div>
+            <div style="margin-top: 10px; padding: 10px; background: #e8f5e8; border-radius: var(--radius); border: 1px solid #4caf50;">
+              <small style="color: #2e7d32;">💡 كلمة المرور الحالية: <strong>102030</strong></small>
+            </div>
+          </div>
+        </section>
+
+        <!-- STORE SETTINGS TAB -->
+        <section id="tab-store" class="tab-content hidden" role="tabpanel">
+          <div style="margin-bottom: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🏪 إعدادات المتجر الأساسية</h4>
+            
+            <div style="display: grid; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">اسم المتجر:</span>
+                <input id="storeName" type="text" style="flex: 2;" placeholder="الواحة فود" value="الواحة فود">
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">رقم واتساب:</span>
+                <input id="whatsappNumber" type="tel" style="flex: 2;" placeholder="201095985529" value="201095985529">
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">وصف المتجر:</span>
+                <textarea id="storeDescription" style="flex: 2; height: 80px; padding: 10px;" placeholder="أفضل المنتجات الغذائية...">متجر الواحة فود - أفضل المنتجات الغذائية</textarea>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">العنوان:</span>
+                <input id="storeAddress" type="text" style="flex: 2;" placeholder="عنوان المتجر">
+              </label>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button id="saveStoreSettings" class="btn primary" type="button" style="flex: 1;">💾 حفظ إعدادات المتجر</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🎨 إعدادات الواجهة والعرض</h4>
+            
+            <div style="display: grid; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">عدد المنتجات في الصف:</span>
+                <select id="productsPerRow" style="flex: 1;">
+                  <option value="2">2 منتج</option>
+                  <option value="3">3 منتجات</option>
+                  <option value="4" selected>4 منتجات</option>
+                  <option value="5">5 منتجات</option>
+                </select>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">حجم الخط:</span>
+                <select id="fontSize" style="flex: 1;">
+                  <option value="small">صغير</option>
+                  <option value="medium" selected>متوسط</option>
+                  <option value="large">كبير</option>
+                </select>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">نوع الخط:</span>
+                <select id="fontFamily" style="flex: 1;">
+                  <option value="Cairo, sans-serif" selected>Cairo</option>
+                  <option value="'Segoe UI', Tahoma, sans-serif">Segoe UI</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="Tahoma, sans-serif">Tahoma</option>
+                </select>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="showAnimations" checked>
+                <span style="flex: 1;">إظهار الحركات والتأثيرات</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="showTopSellers" checked>
+                <span style="flex: 1;">إظهار قسم الأكثر مبيعاً</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="autoOpenCart" checked>
+                <span style="flex: 1;">فتح السلة تلقائياً عند الإضافة</span>
+              </label>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button id="applyUISettings" class="btn primary" type="button" style="flex: 1;">🎨 تطبيق إعدادات الواجهة</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px; margin-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">📦 إدارة الطلبات والعملاء</h4>
+            
+            <div id="ordersList" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+              <!-- سيتم ملؤها بالطلبات -->
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+              <button id="refreshOrders" class="btn primary" type="button" style="flex: 1;">🔄 تحديث الطلبات</button>
+              <button id="exportOrders" class="btn secondary" type="button" style="flex: 1;">📤 تصدير الطلبات</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px; margin-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">📊 الإحصائيات والتقارير</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+              <div style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; padding: 15px; border-radius: var(--radius); text-align: center;">
+                <div style="font-size: 24px; font-weight: bold;" id="statsTotalProducts">0</div>
+                <div>المنتجات</div>
+              </div>
+              
+              <div style="background: linear-gradient(135deg, #2196f3, #1976d2); color: white; padding: 15px; border-radius: var(--radius); text-align: center;">
+                <div style="font-size: 24px; font-weight: bold;" id="statsTotalOrders">0</div>
+                <div>الطلبات</div>
+              </div>
+              
+              <div style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; padding: 15px; border-radius: var(--radius); text-align: center;">
+                <div style="font-size: 24px; font-weight: bold;" id="statsTotalSales">0</div>
+                <div>المبيعات</div>
+              </div>
+              
+              <div style="background: linear-gradient(135deg, #9c27b0, #7b1fa2); color: white; padding: 15px; border-radius: var(--radius); text-align: center;">
+                <div style="font-size: 24px; font-weight: bold;" id="statsPopularProduct">-</div>
+                <div>الأكثر مبيعاً</div>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+              <button id="generateReport" class="btn primary" type="button" style="flex: 1;">📈 تحديث الإحصائيات</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px; margin-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🔒 إعدادات الأمان المتقدمة</h4>
+            
+            <div style="display: grid; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="requireLogin">
+                <span style="flex: 1;">طلب تسجيل الدخول للإدارة</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="autoLogout" checked>
+                <span style="flex: 1;">تسجيل خروج تلقائي بعد 30 دقيقة</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="backupToCloud" checked>
+                <span style="flex: 1;">نسخ احتياطي تلقائي للسحابة</span>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">حد الحذف الآمن:</span>
+                <select id="safeDeleteLimit" style="flex: 1;">
+                  <option value="1">طلب تأكيد واحد</option>
+                  <option value="2" selected>طلب تأكيدين</option>
+                  <option value="3">3 طلبات تأكيد</option>
+                </select>
+              </label>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button id="saveSecuritySettings" class="btn primary" type="button" style="flex: 1;">💾 حفظ إعدادات الأمان</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- DATABASE TAB -->
+        <section id="tab-database" class="tab-content hidden" role="tabpanel">
+          <div style="margin-bottom: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🗄️ إعدادات قاعدة البيانات</h4>
+            <div style="background: #e8f4fd; padding: 15px; border-radius: var(--radius); border: 1px solid #2196f3; margin-bottom: 20px;">
+              <h5 style="margin: 0 0 10px 0; color: #1976d2;">🔥 Firebase Configuration</h5>
+              <p style="margin: 0; font-size: 14px; color: #555;">أدخل بيانات Firebase الخاصة بك لتخزين البيانات في السحابة</p>
+            </div>
+
+            <div style="display: grid; gap: 12px; margin-bottom: 20px;">
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">API Key:</span>
+                <input id="firebaseApiKey" type="text" style="flex: 2;" placeholder="AIzaSyB..." value="AIzaSyA4kp5e0AV13l7_ODW5w4-0spTNGciDl60">
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">Project ID:</span>
+                <input id="firebaseProjectId" type="text" style="flex: 2;" placeholder="your-project-id" value="kongaroo-9c165">
+              </label>
+              <label style="display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1;">Auth Domain:</span>
+                <input id="firebaseAuthDomain" type="text" style="flex: 2;" placeholder="your-project.firebaseapp.com" value="kongaroo-9c165.firebaseapp.com">
+              </label>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button id="saveFirebaseConfig" class="btn primary" type="button" style="flex: 1;">💾 حفظ الإعدادات</button>
+              <button id="testFirebaseConnection" class="btn secondary" type="button" style="flex: 1;">🔗 اختبار الاتصال</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">💾 النسخ الاحتياطي</h4>
+            
+            <div style="display: grid; gap: 12px; margin-bottom: 20px;">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="createBackup" class="btn primary" type="button" style="flex: 1;">
+                  📥 إنشاء نسخة احتياطية
+                </button>
+                <button id="autoBackupToggle" class="btn secondary" type="button" style="flex: 1;">
+                  🔄 تفعيل النسخ التلقائي
+                </button>
+              </div>
+              
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="backupFile" accept=".json" style="flex: 1;">
+                <button id="restoreBackup" class="btn secondary" type="button" style="flex: 1;">
+                  📤 استعادة من نسخة
+                </button>
+              </div>
+            </div>
+            
+            <div style="padding: 12px; background: #e8f5e8; border-radius: var(--radius); border: 1px solid #4caf50;">
+              <small style="color: #2e7d32;">
+                💡 النسخ الاحتياطي التلقائي يعمل كل 3 دقائق ويحفظ تلقائياً عند إغلاق الصفحة
+              </small>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px; margin-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🔄 مزامنة البيانات</h4>
+            <div style="display: grid; gap: 10px;">
+              <button id="syncToCloud" class="btn primary" type="button">☁️ رفع البيانات للسحابة</button>
+              <button id="syncFromCloud" class="btn secondary" type="button">📥 جلب البيانات من السحابة</button>
+              <button id="clearLocalData" class="btn secondary" type="button">🗑️ مسح البيانات المحلية</button>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: var(--radius); border: 1px solid #ffc107;">
+              <h5 style="margin: 0 0 10px 0; color: #856404;">ℹ️ معلومات المزامنة</h5>
+              <div id="syncStatus" style="font-size: 14px; color: #856404;">حالة الاتصال: <span style="color: #dc3545;">غير متصل</span></div>
+            </div>
+          </div>
+
+          <!-- إضافة قسم المهام المؤجلة -->
+          <div style="border-top: 2px solid #eee; padding-top: 25px; margin-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">⏳ المهام المؤجلة للاتصال</h4>
+            
+            <div id="offlineQueueStatus" style="margin-bottom: 15px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>المهام في قائمة الانتظار:</span>
+                <strong id="queueCount">0</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <span>حالة الاتصال:</span>
+                <strong id="connectionStatusText">🌐 جاري التحقق...</strong>
+              </div>
+            </div>
+            
+            <div id="offlineQueueList" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px;">
+              <!-- سيتم ملؤها بالمهام المؤجلة -->
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+              <button id="processQueueNow" class="btn primary" type="button" style="flex: 1;">
+                🔄 معالجة المهام الآن
+              </button>
+              <button id="clearQueue" class="btn secondary" type="button" style="flex: 1;">
+                🗑️ مسح القائمة
+              </button>
+            </div>
+            
+            <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: var(--radius); border: 1px solid #ffc107;">
+              <small style="color: #856404;">
+                💡 النظام يعمل تلقائياً عند عودة الإنترنت. يمكنك معالجة المهام يدوياً إذا لزم الأمر.
+              </small>
+            </div>
+          </div>
+        </section>
+
+        <!-- REPORTS TAB -->
+        <section id="tab-reports" class="tab-content hidden" role="tabpanel">
+          <div style="margin-bottom: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">📈 التقارير المتقدمة</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+              <button id="generateMonthlyReport" class="btn primary">📅 تقرير شهري</button>
+              <button id="exportPDF" class="btn secondary">📤 تصدير PDF</button>
+              <button id="salesReport" class="btn primary">💰 تقرير المبيعات</button>
+              <button id="inventoryReport" class="btn secondary">📦 تقرير المخزون</button>
+            </div>
+          </div>
+
+          <div style="border-top: 2px solid #eee; padding-top: 25px;">
+            <h4 style="color: var(--main-color); margin-bottom: 15px;">🎁 إدارة العروض والخصومات</h4>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: var(--radius); margin-bottom: 15px;">
+              <h5 style="margin: 0 0 10px 0;">إضافة خصم جديد</h5>
+              <div style="display: grid; gap: 10px;">
+                <input type="text" id="discountName" placeholder="اسم العرض" style="width: 100%;">
+                <select id="discountType" style="width: 100%;">
+                  <option value="percentage">نسبة مئوية %</option>
+                  <option value="fixed">قيمة ثابتة</option>
+                </select>
+                <input type="number" id="discountValue" placeholder="قيمة الخصم" style="width: 100%;">
+                <button id="addDiscountBtn" class="btn primary">➕ إضافة خصم</button>
+              </div>
+            </div>
+            
+            <div id="activeDiscountsList">
+              <!-- قائمة العروض النشطة -->
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div style="margin-top:12px;text-align:center">
+        <button id="closeSettings" class="btn secondary" type="button">إغلاق الإعدادات</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editProductModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="editProductTitle">
+    <div class="modal-body small">
+      <h3 id="editProductTitle">✏️ تعديل المنتج</h3>
+      <input id="editName" type="text" placeholder="اسم المنتج" required>
+      <input id="editPrice" type="number" placeholder="السعر" min="0" step="0.01" required>
+      <select id="editSection" required></select>
+      <input id="editImage" type="file" accept="image/*">
+      <img id="editPreview" style="display:none;width:100px;height:80px;object-fit:cover;border-radius:8px;margin-top:8px" alt="معاينة الصورة">
+      <div class="modal-actions">
+        <button id="saveEditBtn" class="btn primary" type="button">حفظ</button>
+        <button id="cancelEditBtn" class="btn secondary" type="button">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="iconsModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="iconsTitle">
+    <div class="modal-body large">
+      <h3 id="iconsTitle">🎨 اختر أيقونة</h3>
+      <div style="margin-bottom: 15px; padding: 15px; background: #f8f8f8; border-radius: var(--radius);">
+        <h4 style="margin: 0 0 10px 0; font-size: 14px;">رفع أيقونة مخصصة:</h4>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="file" id="iconUploadModal" accept="image/*" style="flex: 1;">
+          <button id="uploadIconModalBtn" class="btn primary small" type="button">رفع</button>
+        </div>
+      </div>
+      <div style="margin-bottom:15px;">
+        <input type="text" id="iconsSearch" placeholder="ابحث في الأيقونات..." style="width:100%;">
+      </div>
+      <div id="iconsGrid" class="icons-grid" style="max-height:400px;overflow-y:auto;"></div>
+      <div class="modal-actions">
+        <button id="closeIconsModal" class="btn secondary" type="button">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sounds -->
+  <audio id="soundAdd" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_57a1e29b91.mp3?filename=pop-94319.mp3" preload="auto"></audio>
+  <audio id="soundDelete" src="https://cdn.pixabay.com/download/audio/2021/09/08/audio_7b6b2f7d5c.mp3?filename=click-141242.mp3" preload="auto"></audio>
+
+  <!-- ربط JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
